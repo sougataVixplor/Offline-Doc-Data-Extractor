@@ -1,0 +1,26 @@
+{
+  "ocr": {
+    "engine": "rapidocr",
+    "fallback_engine": "tesseract",
+    "tesseract_cmd": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "language": "eng",
+    "max_image_dimension": 1800,
+    "confidence_threshold": 0.5
+  },
+  "classification": {
+    "min_confidence": 0.35,
+    "allowed_types": [
+      "PAN CARD",
+      "AADHAR CARD",
+      "DRIVING LICENCE",
+      "PASSPORT",
+      "VOTAR CARD"
+    ]
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "max_content_length_mb": 16
+  }
+}
