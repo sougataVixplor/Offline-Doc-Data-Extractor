@@ -1,12 +1,13 @@
 """
 api.py
 Flask REST API and Web Interface for Offline KYC Document Classification & Data Extraction.
+Features 80% black-box confidential number masking and secure original file purging.
 Optimized for 2-4GB RAM servers.
 """
 
 import os
 import sys
-import json
+import uuid
 import psutil
 from flask import Flask, request, jsonify, render_template, send_file
 from werkzeug.utils import secure_filename
@@ -20,8 +21,8 @@ CONFIG_PATH = "confing.json" if os.path.exists("confing.json") else "config.json
 extractor = KYCDataExtractor(config_path=CONFIG_PATH)
 
 app.config["MAX_CONTENT_LENGTH"] = extractor.config.get("server", {}).get("max_content_length_mb", 16) * 1024 * 1024
-UPLOAD_FOLDER = os.path.abspath("uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+PROCESSED_FOLDER = os.path.abspath(extractor.processed_folder)
+os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 
 
 @app.route("/")
@@ -33,24 +34,20 @@ def index():
 @app.route("/api/extract", methods=["POST"])
 def extract_document():
     """
-    Extracts important KYC fields and classifies document.
-    Accepts:
-    1. multipart/form-data: 'file' (uploaded file)
-    2. multipart/form-data: 'sample_path' (relative path to workspace sample)
-    3. json payload: {'image': '<base64>', 'force_type': 'PAN CARD'}
+    Extracts important KYC fields, locates confidential coordinates, masks 80% of
+    confidential numbers with black rectangles, and purges any temporary unmasked originals.
     """
     force_type = request.form.get("force_type") or None
 
     # Option A: Sample path from test suite
     sample_path = request.form.get("sample_path")
     if sample_path:
-        # Sanitize path to prevent traversal
         safe_path = os.path.abspath(sample_path)
         base_dir = os.path.abspath(os.getcwd())
         if not safe_path.startswith(base_dir) or not os.path.exists(safe_path):
             return jsonify({"status": "error", "message": "Invalid sample file path."}), 400
 
-        result = extractor.process_document(safe_path, force_type=force_type)
+        result = extractor.process_document(safe_path, force_type=force_type, purge_source=False)
         return jsonify(result)
 
     # Option B: Uploaded file
@@ -59,16 +56,30 @@ def extract_document():
         if uploaded_file.filename == "":
             return jsonify({"status": "error", "message": "No selected file."}), 400
 
-        file_bytes = uploaded_file.read()
-        if len(file_bytes) == 0:
-            return jsonify({"status": "error", "message": "Uploaded file is empty."}), 400
+        # Save temporarily to disk for formats requiring path (e.g. multi-page PDF or cv2 imdecode)
+        # and enforce immediate deletion
+        temp_dir = os.path.abspath("uploads/temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_filename = f"temp_{uuid.uuid4().hex}_{secure_filename(uploaded_file.filename)}"
+        temp_path = os.path.join(temp_dir, temp_filename)
+        uploaded_file.save(temp_path)
 
-        result = extractor.process_document(
-            file_bytes,
-            filename=secure_filename(uploaded_file.filename),
-            force_type=force_type
-        )
-        return jsonify(result)
+        try:
+            result = extractor.process_document(
+                temp_path,
+                filename=secure_filename(uploaded_file.filename),
+                force_type=force_type,
+                temp_original_path=temp_path,
+                purge_source=True
+            )
+            return jsonify(result)
+        finally:
+            # Guarantee original file is permanently deleted even if processing fails
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
 
     # Option C: Base64 JSON
     if request.is_json:
@@ -114,9 +125,18 @@ def classify_document():
     })
 
 
+@app.route("/api/image/<path:filename>", methods=["GET"])
+def get_processed_image(filename):
+    """Serve the 80% masked processed image (only processed images are stored)."""
+    safe_path = os.path.abspath(os.path.join(PROCESSED_FOLDER, filename))
+    if not safe_path.startswith(PROCESSED_FOLDER) or not os.path.exists(safe_path):
+        return jsonify({"status": "error", "message": "Masked image not found."}), 404
+    return send_file(safe_path, mimetype="image/jpeg")
+
+
 @app.route("/api/sample/<path:filepath>", methods=["GET"])
 def get_sample_file(filepath):
-    """Serve sample file for preview in frontend."""
+    """Serve sample file for testing in frontend."""
     safe_path = os.path.abspath(filepath)
     base_dir = os.path.abspath(os.getcwd())
     if not safe_path.startswith(base_dir) or not os.path.exists(safe_path):
@@ -156,7 +176,11 @@ def health_check():
         "ocr_engine": extractor.ocr_engine.preferred_engine,
         "memory_mb": mem_mb,
         "python_version": sys.version.split()[0],
-        "allowed_kyc_types": extractor.classifier.DOC_TYPES
+        "allowed_kyc_types": extractor.classifier.DOC_TYPES,
+        "security": {
+            "mask_ratio": extractor.masker.mask_ratio,
+            "purge_original": True
+        }
     })
 
 
@@ -168,6 +192,7 @@ if __name__ == "__main__":
 
     print(f"\n* Starting KYC Document Extraction Server at http://127.0.0.1:{port}")
     print(f"* OCR Engine: {extractor.ocr_engine.preferred_engine.upper()} (Offline)")
+    print(f"* Security: 80% Black-box masking enabled | Original images auto-purged")
     print(f"* Memory Optimized for 2-4GB RAM Servers\n")
 
     app.run(host=host, port=port, debug=debug)

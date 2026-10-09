@@ -9,6 +9,8 @@ Engineered specifically to run efficiently on **budget 2–4 GB RAM servers** wi
 ## ✨ Features
 
 - **🔒 100% Offline & Private:** No sensitive customer KYC documents ever leave your machine or server.
+- **🛡️ 80% Black-Box Confidential Masking:** Automatically detects exact bounding coordinates of confidential numbers (PAN, Aadhaar, DL, Passport, Voter ID) and overlays a solid black rectangle hiding 80% of the number before display.
+- **🗑️ Automated Original File Purge:** Raw, unmasked original files are permanently deleted/shredded immediately after processing. Only the 80% masked images are stored.
 - **⚡ 2–4 GB Server Optimized:** Memory footprint stays under **~120–160 MB RAM** during inference with optimized CPU ONNX inference and automated garbage collection.
 - **🎯 5 Fixed KYC Documents Supported:**
   1. **PAN CARD** (`PAN Number`, `Name`, `Father's Name`, `Date of Birth`)
@@ -20,7 +22,7 @@ Engineered specifically to run efficiently on **budget 2–4 GB RAM servers** wi
   - **RapidOCR (Default):** Runs deep-learning ONNX models directly on CPU. Requires zero external C++ binaries, highly robust against rotated/skewed phone camera photos.
   - **Tesseract-OCR (pytesseract):** Optional engine configurable via `config.json` or fallback.
 - **🧠 Automatic Document Classifier:** Multi-tier keyword scoring and pattern regex anchors with confidence calculation (0–100%).
-- **🎨 Glassmorphism Web Interface:** Modern dark-mode UI with drag-and-drop uploads, instant test sample chips, one-click field copy buttons, raw OCR inspector, and JSON API viewer.
+- **🎨 Glassmorphism Web Interface:** Modern dark-mode UI with drag-and-drop uploads, instant test sample chips, masked image preview with security badge, confidential coordinate inspector tab, and JSON API viewer.
 - **📄 Multi-Format Input Support:** JPG, PNG, WEBP, JFIF, and PDF (via PyMuPDF).
 
 ---

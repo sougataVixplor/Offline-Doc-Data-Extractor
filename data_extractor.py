@@ -1,7 +1,8 @@
 """
 data_extractor.py
 Main KYC Data Extraction pipeline and orchestrator.
-Handles end-to-end preprocessing, OCR, classification, and field extraction.
+Handles end-to-end preprocessing, OCR, classification, field extraction,
+confidential coordinate detection, and 80% black box masking for security.
 """
 
 import os
@@ -13,6 +14,7 @@ from typing import Union, Dict, Any
 from preprocessor import ImagePreprocessor
 from ocr_engine import OCREngine
 from classifier import KYCClassifier
+from masker import ConfidentialMasker
 from extractors import (
     PANExtractor,
     AadhaarExtractor,
@@ -39,10 +41,13 @@ class KYCDataExtractor:
         
         ocr_cfg = self.config.get("ocr", {})
         cls_cfg = self.config.get("classification", {})
+        sec_cfg = self.config.get("security", {})
 
         self.preprocessor = ImagePreprocessor(max_dimension=ocr_cfg.get("max_image_dimension", 1800))
         self.ocr_engine = OCREngine(ocr_cfg)
         self.classifier = KYCClassifier(min_confidence=cls_cfg.get("min_confidence", 0.35))
+        self.masker = ConfidentialMasker(mask_ratio=float(sec_cfg.get("mask_ratio", 0.80)))
+        self.processed_folder = sec_cfg.get("processed_folder", "uploads/processed")
 
     def _load_config(self, config_path: str = None) -> Dict[str, Any]:
         candidates = [config_path, "confing.json", "config.json"]
@@ -59,14 +64,19 @@ class KYCDataExtractor:
         self,
         image_source: Union[str, bytes, bytearray, Any],
         filename: str = None,
-        force_type: str = None
+        force_type: str = None,
+        temp_original_path: str = None,
+        purge_source: bool = False
     ) -> Dict[str, Any]:
         """
         Processes a document end-to-end:
         1. Loads and preprocesses image/PDF
         2. Performs offline OCR
-        3. Classifies document into one of 5 fixed KYC types (unless force_type is provided)
+        3. Classifies document into one of 5 fixed KYC types
         4. Extracts relevant important fields
+        5. Locates confidential number coordinates
+        6. Applies 80% black box mask over confidential numbers
+        7. Saves ONLY the masked image and permanently deletes the original
         """
         start_time = time.time()
         try:
@@ -86,6 +96,7 @@ class KYCDataExtractor:
             lines = ocr_result.get("lines", [])
             raw_text = ocr_result.get("raw_text", "")
             engine_used = ocr_result.get("engine_used", "unknown")
+            ocr_details = ocr_result.get("details", [])
 
             if not lines:
                 return {
@@ -94,6 +105,8 @@ class KYCDataExtractor:
                     "document_type": "UNKNOWN",
                     "classification_confidence": 0.0,
                     "extracted_data": {},
+                    "confidential_coordinates": [],
+                    "masked_image_base64": "",
                     "raw_text": "",
                     "processing_time_ms": round((time.time() - start_time) * 1000, 2)
                 }
@@ -116,7 +129,7 @@ class KYCDataExtractor:
                 extractor = extractor_cls(
                     raw_text=raw_text,
                     lines=lines,
-                    details=ocr_result.get("details", [])
+                    details=ocr_details
                 )
                 extracted_fields = extractor.extract()
             else:
@@ -124,6 +137,29 @@ class KYCDataExtractor:
                     "document_type": "UNKNOWN",
                     "message": "Document could not be recognized as one of the 5 standard KYC types."
                 }
+
+            # 6. Locate Confidential Coordinates & Mask 80%
+            confidential_boxes = self.masker.find_confidential_boxes(
+                ocr_details,
+                extracted_fields,
+                doc_type
+            )
+
+            # Apply black rectangle (80% hidden)
+            masked_img = self.masker.apply_mask(prep_img, confidential_boxes)
+            masked_b64 = self.masker.to_base64_data_url(masked_img)
+
+            # 7. Secure Persistence: Save ONLY masked image, purge original file
+            purge_target = temp_original_path
+            if purge_source and isinstance(image_source, str) and os.path.exists(image_source):
+                # Only purge if explicitly flagged as temporary upload
+                purge_target = image_source
+
+            saved_filename, saved_path = self.masker.secure_save_and_purge(
+                masked_img,
+                temp_original_path=purge_target,
+                output_dir=self.processed_folder
+            )
 
             duration_ms = round((time.time() - start_time) * 1000, 2)
 
@@ -134,6 +170,10 @@ class KYCDataExtractor:
                 "classification_details": cls_details,
                 "ocr_engine": engine_used,
                 "extracted_data": extracted_fields,
+                "confidential_coordinates": confidential_boxes,
+                "masked_image_url": f"/api/image/{saved_filename}",
+                "masked_image_base64": masked_b64,
+                "security_status": "Original unmasked document purged. 80% black box masked image stored.",
                 "lines_count": len(lines),
                 "raw_text": raw_text,
                 "processing_time_ms": duration_ms
@@ -168,3 +208,6 @@ if __name__ == "__main__":
             res = extractor.process_document(tf)
             print(f"Type: {res.get('document_type')} (Confidence: {res.get('classification_confidence')}) in {res.get('processing_time_ms')} ms")
             print("Extracted Data:", json.dumps(res.get("extracted_data"), indent=2))
+            print("Confidential Coordinates Found:", len(res.get("confidential_coordinates", [])))
+            for c in res.get("confidential_coordinates", []):
+                print("  -> Field:", c["field"], "Bounding Box:", c["bounding_rect"], "80% Mask:", c["mask_rect_80"])

@@ -12,6 +12,7 @@ if __name__ == "__main__":
 
     print(f"\n* Starting KYC Document Extraction Server at http://127.0.0.1:{port}")
     print(f"* OCR Engine: {extractor.ocr_engine.preferred_engine.upper()} (Offline)")
+    print(f"* Security: 80% Black-box masking enabled | Original images auto-purged")
     print(f"* Memory Optimized for 2-4GB RAM Servers\n")
 
     app.run(host=host, port=port, debug=debug)

@@ -1,6 +1,7 @@
 /**
  * app.js
- * Frontend interactions, file upload, sample testing, and data visualization.
+ * Frontend interactions, file upload, sample testing, and data visualization
+ * with 80% confidential black box masking support and coordinate inspection.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -15,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearBtn = document.getElementById("clearBtn");
   const extractBtn = document.getElementById("extractBtn");
   const forceTypeSelect = document.getElementById("forceTypeSelect");
+  const securityBadge = document.getElementById("securityBadge");
 
   const emptyState = document.getElementById("emptyState");
   const loadingState = document.getElementById("loadingState");
@@ -26,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const resLatency = document.getElementById("resLatency");
   const resEngine = document.getElementById("resEngine");
   const fieldsGrid = document.getElementById("fieldsGrid");
+  const coordsList = document.getElementById("coordsList");
   const jsonContent = document.getElementById("jsonContent");
   const ocrContent = document.getElementById("ocrContent");
   const copyJsonBtn = document.getElementById("copyJsonBtn");
@@ -84,6 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentFile = file;
     currentSamplePath = null;
     clearActiveChips();
+    if (securityBadge) securityBadge.style.display = "none";
 
     // Show preview
     const reader = new FileReader();
@@ -102,6 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentSamplePath = null;
     fileInput.value = "";
     imagePreview.src = "";
+    if (securityBadge) securityBadge.style.display = "none";
     previewContainer.style.display = "none";
     dropzonePrompt.style.display = "flex";
     extractBtn.disabled = true;
@@ -124,6 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function selectSample(sampleRelPath, chipElement) {
     clearActiveChips();
     chipElement.classList.add("active");
+    if (securityBadge) securityBadge.style.display = "none";
 
     currentSamplePath = sampleRelPath;
     currentFile = null;
@@ -195,7 +201,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Document header info
+    // 1. Switch preview to MASKED image for security & privacy
+    if (data.masked_image_base64) {
+      imagePreview.src = data.masked_image_base64;
+      if (securityBadge) securityBadge.style.display = "inline-flex";
+      const cleanName = previewFileName.textContent.replace(/^\[80% Masked\]\s*/, "");
+      previewFileName.textContent = `[80% Masked] ${cleanName}`;
+      showToast("Original image purged. Displaying 80% masked image.");
+    }
+
+    // 2. Document header info
     const docType = data.document_type || "UNKNOWN";
     resDocType.textContent = docType;
     resConfidence.textContent = Math.round((data.classification_confidence || 0) * 100) + "% Conf";
@@ -205,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Set doc type color theme
     setDocTypeStyle(docType);
 
-    // Populate Fields Grid
+    // 3. Populate Fields Grid
     fieldsGrid.innerHTML = "";
     const extracted = data.extracted_data || {};
 
@@ -225,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       card.innerHTML = `
         <div class="field-card-main">
-          <span class="field-key">${friendlyKey}</span>
+          <span class="field-key">${friendlyKey} ${isPrimary ? '(80% Masked on Card)' : ''}</span>
           <span class="field-value ${isPrimary ? 'highlight' : ''} ${isNull ? 'null-val' : ''}">${displayVal}</span>
         </div>
         ${!isNull ? `
@@ -262,10 +277,46 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Populate JSON Viewer
+    // 4. Populate Masked Coordinates Tab
+    if (coordsList) {
+      coordsList.innerHTML = "";
+      const coords = data.confidential_coordinates || [];
+      if (coords.length === 0) {
+        coordsList.innerHTML = `<div class="empty-coords" style="color: var(--text-dim); font-size: 0.85rem; padding: 12px;">No confidential numbers detected to mask.</div>`;
+      } else {
+        coords.forEach((c, idx) => {
+          const card = document.createElement("div");
+          card.className = "coord-card";
+          const b = c.bounding_rect || {};
+          const m = c.mask_rect_80 || {};
+          card.innerHTML = `
+            <div class="coord-header">
+              <span class="coord-field">Region #${idx + 1}: ${c.field}</span>
+              <span class="coord-badge">80% Redacted</span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">
+              Matched Text: <strong style="color: #fff;">${escapeHtml(c.detected_text || '')}</strong>
+            </div>
+            <div class="coord-box-row">
+              <div class="coord-box">
+                <div class="coord-label">OCR Bounding Box [x, y, w, h]</div>
+                <div class="coord-val">[X: ${b.x}, Y: ${b.y}, W: ${b.width}, H: ${b.height}]</div>
+              </div>
+              <div class="coord-box">
+                <div class="coord-label">80% Black Mask Box [x, y, w, h]</div>
+                <div class="coord-val text-success">[X: ${m.x}, Y: ${m.y}, W: ${m.width}, H: ${m.height}]</div>
+              </div>
+            </div>
+          `;
+          coordsList.appendChild(card);
+        });
+      }
+    }
+
+    // 5. Populate JSON Viewer
     jsonContent.textContent = JSON.stringify(data, null, 2);
 
-    // Populate OCR Content
+    // 6. Populate OCR Content
     ocrContent.textContent = data.raw_text || "No OCR lines extracted.";
 
     // Show Results
@@ -310,7 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Copy to Clipboard helper
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-      showToast();
+      showToast("Copied to clipboard!");
     }).catch(() => {
       const textarea = document.createElement("textarea");
       textarea.value = text;
@@ -318,15 +369,16 @@ document.addEventListener("DOMContentLoaded", () => {
       textarea.select();
       document.execCommand("copy");
       document.body.removeChild(textarea);
-      showToast();
+      showToast("Copied to clipboard!");
     });
   }
 
-  function showToast() {
+  function showToast(msg = "Copied to clipboard!") {
+    toast.textContent = msg;
     toast.classList.add("show");
     setTimeout(() => {
       toast.classList.remove("show");
-    }, 2000);
+    }, 2800);
   }
 
   function escapeHtml(text) {
