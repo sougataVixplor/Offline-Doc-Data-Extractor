@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offline KYC Document Extractor & Classifier</title>
-  <meta name="description" content="Lightweight Offline OCR and AI-assisted KYC data extraction with 80% confidential number masking. Optimized for 2-4GB RAM servers.">
+  <title>Offline Document Text Extractor & OCR</title>
+  <meta name="description" content="Lightweight Offline OCR and text extraction engine. Fast CPU neural text recognition without classification or cloud APIs.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -30,18 +30,39 @@
           </svg>
         </div>
         <div>
-          <h1>KYC Offline Extractor</h1>
-          <p class="subtitle">Classification & Extraction • 80% Confidential Masking • 2-4GB Server Optimized</p>
+          <h1 id="appTitle">Document Text Extractor</h1>
+          <p class="subtitle" id="appSubtitle">Offline Neural OCR • Pure Text Extraction (No KYC / No Classification) • 2-4GB RAM Optimized</p>
         </div>
       </div>
 
+      <!-- Mode Switcher -->
+      <div class="mode-switcher-wrapper">
+        <div class="mode-switcher" id="modeSwitcher">
+          <button type="button" class="mode-btn active" id="modeNormalBtn" data-mode="normal" title="Extract all text without KYC classification">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <line x1="10" y1="9" x2="8" y2="9"></line>
+            </svg>
+            <span>Normal Text OCR</span>
+          </button>
+          <button type="button" class="mode-btn" id="modeKycBtn" data-mode="kyc" title="Classify KYC cards & mask confidential numbers">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+              <line x1="7" y1="8" x2="11" y2="8"></line>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+            </svg>
+            <span>KYC Cards & Masking</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Header Badges -->
       <div class="header-badges">
-        <div class="status-pill security-pill">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          <span>Privacy: 80% Masking + Auto-Purge</span>
+        <div class="status-pill mode-indicator-pill" id="modeIndicatorBadge">
+          <span class="status-dot-blue"></span>
+          <span id="modeBadgeText">Mode: Normal Text OCR</span>
         </div>
         <div class="status-pill active" id="engineStatusBadge">
           <span class="status-dot"></span>
@@ -64,28 +85,34 @@
       <!-- Left Panel: Upload & Control -->
       <section class="panel upload-panel">
         <div class="panel-header">
-          <h2>1. Select or Upload Document</h2>
-          <span class="badge badge-accent">Offline Mode</span>
+          <div class="panel-header-title">
+            <h2>1. Select or Upload Image / Document</h2>
+            <p class="panel-header-desc" id="panelHeaderDesc">Works with any photo, scan, document, receipt, or pasted screenshot</p>
+          </div>
+          <span class="badge badge-accent" id="panelModeBadge">Pure OCR</span>
         </div>
 
         <!-- Sample Selector Ribbon -->
         <div class="sample-section">
-          <label class="section-label">Quick Test Samples:</label>
+          <div class="sample-header-row">
+            <label class="section-label">Quick Test Samples:</label>
+            <span class="sample-hint">Click any sample to test instant extraction</span>
+          </div>
           <div class="sample-chips" id="sampleChipsContainer">
             <button class="chip" data-sample="PAN CARD SAMPLE/SAMPLE-3.jpg">
-              <span class="chip-dot pan-dot"></span> PAN Card
+              <span class="chip-dot pan-dot"></span> Sample Document 1
             </button>
             <button class="chip" data-sample="AADHAR CARD SAMPLE/SAMPLE-2.webp">
-              <span class="chip-dot aadhaar-dot"></span> Aadhaar Card
+              <span class="chip-dot aadhaar-dot"></span> Sample Document 2
             </button>
             <button class="chip" data-sample="DRIVING LICENCE SAMPLE/SAMPLE-1.webp">
-              <span class="chip-dot dl-dot"></span> Driving Licence
+              <span class="chip-dot dl-dot"></span> Sample Document 3
             </button>
             <button class="chip" data-sample="PASSPORT SAMPLE/SAMPLE-1.webp">
-              <span class="chip-dot passport-dot"></span> Passport
+              <span class="chip-dot passport-dot"></span> Sample Document 4
             </button>
             <button class="chip" data-sample="VOTAR CARD SAMPLE/SAMPLE-1.webp">
-              <span class="chip-dot voter-dot"></span> Voter Card
+              <span class="chip-dot voter-dot"></span> Sample Document 5
             </button>
           </div>
         </div>
@@ -101,8 +128,10 @@
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
             </div>
-            <p class="drop-title">Drag & drop document here</p>
-            <p class="drop-sub">or <button type="button" class="browse-btn" id="browseBtn">browse file</button> from disk</p>
+            <p class="drop-title">Drag & drop document or image here</p>
+            <p class="drop-sub">
+              or <button type="button" class="browse-btn" id="browseBtn">browse file</button> • or paste screenshot <kbd class="kbd-badge">Ctrl+V</kbd>
+            </p>
             <span class="file-limits">Supports JPG, PNG, WEBP, JFIF, PDF • Max 16MB</span>
           </div>
 
@@ -126,8 +155,26 @@
           </div>
         </div>
 
-        <!-- Options Bar -->
-        <div class="options-bar">
+        <!-- Normal Mode Options Bar -->
+        <div class="options-bar normal-options" id="normalOptionsBar">
+          <div class="mode-info-tag">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>Normal Mode: Full text OCR without KYC classification or masking.</span>
+          </div>
+          <button id="extractBtn" class="btn btn-primary" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span id="extractBtnText">Extract Text</span>
+          </button>
+        </div>
+
+        <!-- KYC Mode Options Bar (Hidden in normal mode) -->
+        <div class="options-bar kyc-options" id="kycOptionsBar" style="display: none;">
           <div class="field-group">
             <label for="forceTypeSelect">Classification Mode:</label>
             <select id="forceTypeSelect" class="form-select">
@@ -139,7 +186,7 @@
               <option value="VOTAR CARD">Force: VOTAR CARD</option>
             </select>
           </div>
-          <button id="extractBtn" class="btn btn-primary" disabled>
+          <button id="extractKycBtn" class="btn btn-primary" disabled>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="5 3 19 12 5 21 5 3"></polygon>
             </svg>
@@ -147,13 +194,40 @@
           </button>
         </div>
 
-        <!-- Privacy & Security Notice Card -->
-        <div class="security-notice-card">
+        <!-- Normal Mode Info Card -->
+        <div class="info-card normal-card" id="normalInfoCard">
+          <div class="notice-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+              <polyline points="4 7 4 4 20 4 20 7"></polyline>
+              <line x1="9" y1="20" x2="15" y2="20"></line>
+              <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+            <h4>Pure Offline Neural Text OCR</h4>
+          </div>
+          <p>
+            Extracts full text and individual lines from any document, page, or photo without categorizing into KYC types. 
+            Runs completely offline using lightweight ONNX neural models on CPU.
+          </p>
+          <div class="feature-bullets">
+            <div class="f-bullet">
+              <span class="f-dot"></span> Line-by-line bounding coordinates & confidence scores
+            </div>
+            <div class="f-bullet">
+              <span class="f-dot"></span> One-click Copy Text and export to .txt & .json
+            </div>
+            <div class="f-bullet">
+              <span class="f-dot"></span> Paste screenshots directly (<kbd>Ctrl+V</kbd>)
+            </div>
+          </div>
+        </div>
+
+        <!-- KYC Privacy & Security Notice Card (Only shown in KYC mode) -->
+        <div class="security-notice-card kyc-card" id="kycSecurityCard" style="display: none;">
           <div class="notice-header">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
-            <h4>Automatic Security & Privacy Protection</h4>
+            <h4>Automatic KYC Security & Privacy Protection</h4>
           </div>
           <p>
             Confidential numbers (PAN, Aadhaar, DL, Passport, Voter ID) are automatically detected and masked with an 
@@ -162,8 +236,8 @@
           </p>
         </div>
 
-        <!-- Supported Documents Card -->
-        <div class="doc-types-card">
+        <!-- Supported Documents Card (Only shown in KYC mode) -->
+        <div class="doc-types-card kyc-card" id="kycDocTypesCard" style="display: none;">
           <h4>Configured KYC Documents:</h4>
           <div class="types-tags">
             <span class="tag tag-pan">PAN CARD</span>
@@ -178,14 +252,33 @@
       <!-- Right Panel: Extraction Output -->
       <section class="panel results-panel">
         <div class="panel-header">
-          <h2>2. Extracted KYC Results</h2>
+          <div>
+            <h2 id="resultsPanelTitle">2. Extracted Text Results</h2>
+            <p class="panel-header-desc" id="resultsPanelDesc">Raw extracted text, line details, and coordinates</p>
+          </div>
+          <!-- Normal Mode Result Actions -->
           <div class="result-actions" id="resultActions" style="display: none;">
-            <button class="btn-sm btn-outline" id="copyJsonBtn">
+            <button class="btn-sm btn-outline" id="copyAllTextBtn" title="Copy all extracted text to clipboard">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
-              <span>Copy JSON</span>
+              <span>Copy Text</span>
+            </button>
+            <button class="btn-sm btn-outline" id="downloadTxtBtn" title="Download text as .txt file">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download .TXT</span>
+            </button>
+            <button class="btn-sm btn-outline" id="downloadJsonBtn" title="Download response JSON">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>Export JSON</span>
             </button>
           </div>
         </div>
@@ -198,21 +291,50 @@
               <polyline points="13 2 13 9 20 9"></polyline>
             </svg>
           </div>
-          <h3>No Document Extracted Yet</h3>
-          <p>Upload a KYC photo or click one of the quick test samples on the left to inspect extraction and 80% masking results.</p>
+          <h3 id="emptyStateTitle">No Document Extracted Yet</h3>
+          <p id="emptyStateDesc">Upload or paste an image or choose one of the quick test samples on the left to extract text offline.</p>
         </div>
 
         <!-- Loading State -->
         <div class="loading-state" id="loadingState" style="display: none;">
           <div class="spinner-ring"></div>
-          <h3 id="loadingText">Processing Document Offline...</h3>
-          <p class="loading-desc">Pre-processing image • Running OCR • Locating coordinates • Applying 80% black box mask</p>
+          <h3 id="loadingText">Extracting Text Offline...</h3>
+          <p class="loading-desc" id="loadingDesc">Pre-processing image • Running ONNX OCR • Detecting text lines & bounding boxes</p>
         </div>
 
         <!-- Results Container -->
         <div class="results-container" id="resultsContainer" style="display: none;">
-          <!-- Classification Banner -->
-          <div class="classification-banner" id="classificationBanner">
+
+          <!-- NORMAL MODE: Summary Stats Banner -->
+          <div class="text-stats-banner" id="textStatsBanner">
+            <div class="stat-card">
+              <div class="stat-card-label">Lines Detected</div>
+              <div class="stat-card-val text-accent" id="statLinesCount">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Words</div>
+              <div class="stat-card-val" id="statWordsCount">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Characters</div>
+              <div class="stat-card-val" id="statCharsCount">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Avg Confidence</div>
+              <div class="stat-card-val text-success" id="statAvgConfidence">--</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Latency</div>
+              <div class="stat-card-val" id="statLatency">0 ms</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">OCR Engine</div>
+              <div class="stat-card-val text-dim-val" id="statEngine">RapidOCR</div>
+            </div>
+          </div>
+
+          <!-- KYC MODE: Classification Banner (Only shown in KYC mode) -->
+          <div class="classification-banner" id="classificationBanner" style="display: none;">
             <div class="class-left">
               <span class="class-label">Identified Document</span>
               <div class="class-title-row">
@@ -236,23 +358,113 @@
             </div>
           </div>
 
-          <!-- View Tabs -->
-          <div class="tabs-header">
+          <!-- NORMAL MODE: Search & View Toolbar -->
+          <div class="text-toolbar" id="textToolbar">
+            <div class="search-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="textSearchInput" placeholder="Filter or search text in result..." />
+              <button type="button" class="btn-clear-search" id="clearSearchBtn" style="display: none;" title="Clear search">✕</button>
+              <span class="search-match-badge" id="searchMatchBadge" style="display: none;">0 matches</span>
+            </div>
+            <div class="toolbar-toggles">
+              <button type="button" class="btn-toggle active" id="toggleLineNumbersBtn" title="Toggle line numbers">
+                <span># Line Numbers</span>
+              </button>
+              <button type="button" class="btn-toggle active" id="toggleWordWrapBtn" title="Toggle word wrap">
+                <span>↩ Wrap Text</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- NORMAL MODE View Tabs -->
+          <div class="tabs-header" id="normalTabsHeader">
+            <button class="tab-btn active" data-tab="tabNormalText">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>Extracted Text</span>
+            </button>
+            <button class="tab-btn" data-tab="tabLineByLine">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              <span>Line-by-Line Breakdown</span>
+            </button>
+            <button class="tab-btn" data-tab="tabBoundingBoxes">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="9" x2="15" y2="9"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+              <span>Coordinates & Boxes</span>
+            </button>
+            <button class="tab-btn" data-tab="tabJson">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+              <span>JSON Response</span>
+            </button>
+          </div>
+
+          <!-- KYC MODE View Tabs (Hidden in normal mode) -->
+          <div class="tabs-header" id="kycTabsHeader" style="display: none;">
             <button class="tab-btn active" data-tab="tabFields">Important Fields</button>
             <button class="tab-btn" data-tab="tabCoords">Masked Coordinates</button>
             <button class="tab-btn" data-tab="tabJson">JSON Output</button>
             <button class="tab-btn" data-tab="tabOcr">Raw OCR Text</button>
           </div>
 
-          <!-- Tab: Important Fields Grid -->
-          <div class="tab-content active" id="tabFields">
+          <!-- TAB 1 (Normal): Formatted Extracted Text -->
+          <div class="tab-content active" id="tabNormalText">
+            <div class="text-editor-container">
+              <div class="line-numbers-gutter" id="lineNumbersGutter"></div>
+              <div class="extracted-text-body wrap-enabled" id="extractedTextBody" contenteditable="false" spellcheck="false"></div>
+            </div>
+          </div>
+
+          <!-- TAB 2 (Normal): Line-by-Line Breakdown -->
+          <div class="tab-content" id="tabLineByLine">
+            <div class="lines-list" id="linesList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- TAB 3 (Normal): Bounding Boxes -->
+          <div class="tab-content" id="tabBoundingBoxes">
+            <div class="boxes-container">
+              <p class="coords-intro">
+                OCR detected word/line polygonal coordinates [x, y] with confidence probabilities:
+              </p>
+              <div class="boxes-grid" id="boxesGrid">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4 (Common): JSON Output -->
+          <div class="tab-content" id="tabJson">
+            <pre class="json-viewer"><code id="jsonContent">{}</code></pre>
+          </div>
+
+          <!-- KYC TAB: Important Fields Grid -->
+          <div class="tab-content" id="tabFields" style="display: none;">
             <div class="fields-grid" id="fieldsGrid">
               <!-- Dynamically populated -->
             </div>
           </div>
 
-          <!-- Tab: Masked Coordinates Grid -->
-          <div class="tab-content" id="tabCoords">
+          <!-- KYC TAB: Masked Coordinates Grid -->
+          <div class="tab-content" id="tabCoords" style="display: none;">
             <div class="coords-container">
               <p class="coords-intro">
                 Bounding box coordinates and exact 80% black-box rectangle dimensions computed by offline OCR:
@@ -263,15 +475,11 @@
             </div>
           </div>
 
-          <!-- Tab: JSON Output -->
-          <div class="tab-content" id="tabJson">
-            <pre class="json-viewer"><code id="jsonContent">{}</code></pre>
-          </div>
-
-          <!-- Tab: Raw OCR Text -->
-          <div class="tab-content" id="tabOcr">
+          <!-- KYC TAB: Raw OCR Text -->
+          <div class="tab-content" id="tabOcr" style="display: none;">
             <div class="ocr-text-box" id="ocrContent"></div>
           </div>
+
         </div>
       </section>
     </main>

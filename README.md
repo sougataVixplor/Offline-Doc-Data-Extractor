@@ -290,7 +290,59 @@ curl -X POST http://127.0.0.1:5000/api/classify \
 
 ---
 
-### 3. Health & Memory Check
+### 3. Extract Text Only (OCR Only)
+**`POST /api/extract-text`** *(alias: **`POST /api/ocr`**)*
+
+Extracts text directly from the image or document using the offline OCR engine without running KYC document classification, field extraction, or masking.
+
+#### A. Form-data Upload
+- `file`: (Binary file) The image or PDF file.
+
+```bash
+curl -X POST http://127.0.0.1:5000/api/extract-text \
+  -F "file=@/path/to/any_image.jpg"
+```
+
+#### B. Base64 JSON Payload
+```bash
+curl -X POST http://127.0.0.1:5000/api/extract-text \
+  -H "Content-Type: application/json" \
+  -d '{"image": "<base64_string>"}'
+```
+
+#### C. Sample File Path
+```bash
+curl -X POST http://127.0.0.1:5000/api/extract-text \
+  -F "sample_path=PAN CARD SAMPLE/SAMPLE-3.jpg"
+```
+
+#### Example Response:
+```json
+{
+  "status": "success",
+  "text": "INCOMETAXDEPARTMENT\nGOVT. OF INDIA\nPermanent Account Number Card\n...",
+  "raw_text": "INCOMETAXDEPARTMENT\nGOVT. OF INDIA\nPermanent Account Number Card\n...",
+  "lines": [
+    "INCOMETAXDEPARTMENT",
+    "GOVT. OF INDIA",
+    "Permanent Account Number Card"
+  ],
+  "lines_count": 3,
+  "details": [
+    {
+      "box": [[10, 15], [200, 15], [200, 45], [10, 45]],
+      "score": 0.98,
+      "text": "INCOMETAXDEPARTMENT"
+    }
+  ],
+  "ocr_engine": "rapidocr",
+  "processing_time_ms": 195.42
+}
+```
+
+---
+
+### 4. Health & Memory Check
 **`GET /api/health`**
 
 Returns server health, active OCR engine, and exact RAM usage in megabytes.

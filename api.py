@@ -125,6 +125,71 @@ def classify_document():
     })
 
 
+@app.route("/api/extract-text", methods=["POST"])
+@app.route("/api/ocr", methods=["POST"])
+def extract_text_only():
+    """
+    Extracts raw text only from an image or document without KYC classification
+    or field extraction.
+    Supports:
+    - Multipart form-data with file upload ('file')
+    - JSON payload with base64 encoded image ('image' or 'image_base64')
+    - Sample file path ('sample_path')
+    - Raw binary image data in request body
+    """
+    # Option A: Sample path from test suite
+    sample_path = request.form.get("sample_path")
+    if not sample_path and request.is_json:
+        sample_path = request.get_json().get("sample_path")
+
+    if sample_path:
+        safe_path = os.path.abspath(sample_path)
+        base_dir = os.path.abspath(os.getcwd())
+        if not safe_path.startswith(base_dir) or not os.path.exists(safe_path):
+            return jsonify({"status": "error", "message": "Invalid sample file path."}), 400
+
+        result = extractor.extract_text(safe_path)
+        return jsonify(result)
+
+    # Option B: Uploaded file
+    if "file" in request.files:
+        uploaded_file = request.files["file"]
+        if uploaded_file.filename == "":
+            return jsonify({"status": "error", "message": "No selected file."}), 400
+
+        file_bytes = uploaded_file.read()
+        result = extractor.extract_text(file_bytes)
+        return jsonify(result)
+
+    # Option C: Base64 JSON
+    if request.is_json:
+        data = request.get_json()
+        b64_str = data.get("image") or data.get("image_base64")
+        if not b64_str:
+            return jsonify({"status": "error", "message": "Missing 'image' base64 data."}), 400
+
+        import base64
+        try:
+            if "," in b64_str:
+                b64_str = b64_str.split(",")[1]
+            file_bytes = base64.b64decode(b64_str)
+            result = extractor.extract_text(file_bytes)
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"status": "error", "message": f"Base64 decode failed: {str(e)}"}), 400
+
+    # Option D: Direct binary data
+    if request.data:
+        try:
+            result = extractor.extract_text(request.data)
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"status": "error", "message": f"Binary image decode failed: {str(e)}"}), 400
+
+    return jsonify({"status": "error", "message": "No file or image payload provided."}), 400
+
+
+
 @app.route("/api/image/<path:filename>", methods=["GET"])
 def get_processed_image(filename):
     """Serve the 80% masked processed image (only processed images are stored)."""

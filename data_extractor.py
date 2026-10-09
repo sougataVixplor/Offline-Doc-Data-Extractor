@@ -187,6 +187,57 @@ class KYCDataExtractor:
                 "processing_time_ms": round((time.time() - start_time) * 1000, 2)
             }
 
+    def extract_text(
+        self,
+        image_source: Union[str, bytes, bytearray, Any]
+    ) -> Dict[str, Any]:
+        """
+        Extracts raw text only from an image or document without KYC classification
+        or field extraction.
+        """
+        start_time = time.time()
+        try:
+            img = self.preprocessor.load_image(image_source)
+            if img is None:
+                return {
+                    "status": "error",
+                    "message": "Failed to decode image from provided source.",
+                    "processing_time_ms": round((time.time() - start_time) * 1000, 2)
+                }
+
+            prep_img = self.preprocessor.preprocess_for_ocr(img)
+            ocr_result = self.ocr_engine.extract(prep_img)
+            lines = ocr_result.get("lines", [])
+            raw_text = ocr_result.get("raw_text", "")
+            engine_used = ocr_result.get("engine_used", "unknown")
+            ocr_details = ocr_result.get("details", [])
+
+            h, w = prep_img.shape[:2] if prep_img is not None else (0, 0)
+            words = [w for w in raw_text.split() if w.strip()]
+
+            return {
+                "status": "success",
+                "text": raw_text,
+                "raw_text": raw_text,
+                "lines": lines,
+                "lines_count": len(lines),
+                "words_count": len(words),
+                "characters_count": len(raw_text),
+                "image_width": int(w),
+                "image_height": int(h),
+                "details": ocr_details,
+                "ocr_engine": engine_used,
+                "processing_time_ms": round((time.time() - start_time) * 1000, 2)
+            }
+        except Exception as e:
+            logger.exception("Error extracting text from image")
+            return {
+                "status": "error",
+                "message": str(e),
+                "processing_time_ms": round((time.time() - start_time) * 1000, 2)
+            }
+
+
 
 if __name__ == "__main__":
     import sys
